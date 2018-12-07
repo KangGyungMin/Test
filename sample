@@ -1,76 +1,86 @@
-#Create a simulator object
-set ns [new Simulator]
- #Define different colors for data flows (for NAM)
-$ns color 1 Blue
-$ns color 2 Red
-#Open the NAM trace file
-set nf [open out.nam w]
-$ns namtrace-all $nf
-#Define a 'finish' procedure
-proc finish {} {
+# Some constants
+set area_width      100
+set area_height     100
+set stop_time       20
 
-        global ns nf
-        $ns flush-trace
-        #Close the NAM trace file
-        close $nf
-        #Execute NAM on the trace file
-        exec nam out.nam &
-        exit 0
-}
-#Create four nodes
-set n0 [$ns node]
-set n1 [$ns node]
-set n2 [$ns node]
-set n3 [$ns node]
-#Create links between the nodes
-$ns duplex-link $n0 $n2 2Mb 10ms DropTail
-$ns duplex-link $n1 $n2 2Mb 10ms DropTail
-$ns duplex-link $n2 $n3 1.7Mb 20ms DropTail
-#Set Queue Size of link (n2-n3) to 10
-$ns queue-limit $n2 $n3 10
-#Give node position (for NAM)
-$ns duplex-link-op $n0 $n2 orient right-down
-$ns duplex-link-op $n1 $n2 orient right-up
-$ns duplex-link-op $n2 $n3 orient right
-#Monitor the queue for link (n2-n3). (for NAM)
-$ns duplex-link-op $n2 $n3 queuePos 0.5
-#Setup a TCP connection
-set tcp [new Agent/TCP]
-$tcp set class_ 2
-$ns attach-agent $n0 $tcp
-set sink [new Agent/TCPSink]
-$ns attach-agent $n3 $sink
-$ns connect $tcp $sink
-$tcp set fid_ 1
-#Setup a FTP over TCP connection
-set ftp [new Application/FTP]
-$ftp attach-agent $tcp
-$ftp set type_ FTP
-#Setup a UDP connection
+# MAC stuff
+Mac/802_11 set dataRate_    2.0e6
+Mac/802_11 set RTSThreshold_    3000
+
+# Define the simulator
+set simulator [new Simulator]
+
+set trace_file  [open out.tr w]
+
+$simulator trace-all $trace_file
+
+#Open the NAM trace file
+set nam_file [open out.nam w]
+
+$simulator namtrace-all-wireless $nam_file $area_width  $area_height
+
+
+#Adjusting the topography
+set topography [new Topography]
+$topography load_flatgrid $area_width $area_height
+
+# General Operations Director
+create-god 2
+
+# Some configuration just as same as the expamle 'ex6sta.tcl'
+$simulator node-config -adhocRouting    DumbAgent \
+                 -llType    LL \
+                 -macType   Mac/802_11 \
+                 -ifqType   Queue/DropTail/PriQueue \
+                 -ifqLen    50 \
+                 -antType   Antenna/OmniAntenna \
+         -propType  Propagation/FreeSpace \
+                 -phyType   Phy/WirelessPhy \
+                 -channelType   Channel/WirelessChannel \
+                 -topoInstance  $topography \
+                 -agentTrace    ON \
+                 -routerTrace   ON \
+                 -macTrace  ON \
+         -movementTrace ON
+
+set host(1) [ $simulator node ]
+set host(2) [ $simulator node ]
+
+$host(1) set X_ 20
+$host(1) set Y_ 20
+$host(1) set Z_ 0.0
+
+$host(2) set X_ 70
+$host(2) set Y_ 70
+$host(2) set Z_ 0.0
+$simulator initial_node_pos $host(1) 30
+$simulator initial_node_pos $host(2) 30
+# Connection 1 UDP
 set udp [new Agent/UDP]
-$ns attach-agent $n1 $udp
-set null [new Agent/Null]
-$ns attach-agent $n3 $null
-$ns connect $udp $null
-$udp set fid_ 2
-#Setup a CBR over UDP connection
+$simulator attach-agent $host(1) $udp
+set sink [new Agent/Null]
+$simulator attach-agent $host(2) $sink
+$simulator connect $udp $sink
 set cbr [new Application/Traffic/CBR]
+$cbr set packetSize_ 1000
+$cbr set interval_ 0.005
 $cbr attach-agent $udp
-$cbr set type_ CBR
-$cbr set packet_size_ 1000
-$cbr set rate_ 1mb
-$cbr set random_ false
-#Schedule events for the CBR and FTP agents
-$ns at 0.1 "$cbr start"
-$ns at 1.0 "$ftp start"
-$ns at 4.0 "$ftp stop"
-$ns at 4.5 "$cbr stop"
-#Detach tcp and sink agents (not really necessary)
-$ns at 4.5 "$ns detach-agent $n0 $tcp ; $ns detach-agent $n3 $sink"
-#Call the finish procedure after 5 seconds of simulation time
-$ns at 5.0 "finish"
-#Print CBR packet size and interval
-puts "CBR packet size = [$cbr set packet_size_]"
-puts "CBR interval = [$cbr set interval_]"
-#Run the simulation
-$ns run
+$simulator at 5.0  "$cbr start"
+
+# invoking finish procedure
+$simulator at $stop_time "finish"
+
+proc finish {} {
+    global simulator host cbr nam_file trace_file
+    $host(1) reset
+    $host(2) reset  
+    $cbr stop
+    $simulator flush-trace
+    close $nam_file 
+    close $trace_file
+    $simulator halt
+    puts "Finished"
+}
+
+puts "Starting Simulation..."
+$simulator run
