@@ -1,0 +1,21 @@
+#Filename: sample3.tcl
+
+#***************Dynamic Wireless network **********************#
+
+#******************Random Topology Creation********************#
+
+#Run Time Argument
+
+if {$argc != 1} {
+error "\nCommand: ns sample3.tcl <no.of.nodes>\n\n "
+}
+set val(nn) [lindex $argv 0] ;# number of mobilenodes
+#Random Location for nodes
+
+for {set i 0} {$i < $val(nn)} {incr i} {
+
+$node_($i) set X_ [expr rand()*$val(x)]
+$node_($i) set Y_ [expr rand()*$val(y)]
+$node_($i) set Z_ 0
+
+}
