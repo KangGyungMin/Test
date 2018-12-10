@@ -1,0 +1,43 @@
+#Filename: sample5.tcl
+
+TCP (Transmission Control Protocol) and FTP (File Transfer
+
+Protocol) ************#
+
+#*****defining Communication between node0 and node1 **********#
+
+# Defining a transport agent for sending
+
+set tcp [new Agent/TCP]
+
+# Attaching transport agent to sender node
+
+$ns attach-agent $node_(0) $tcp
+
+# Defining a transport agent for receiving
+
+set sink [new Agent/TCPSink]
+
+# Attaching transport agent to receiver node
+
+$ns attach-agent $node_(1) $sink
+
+#Connecting sending and receiving transport agents
+
+$ns connect $tcp $sink
+
+#Defining Application instance
+
+set ftp [new Application/FTP]
+
+# Attaching transport agent to application agent
+
+$ftp attach-agent $tcp
+
+# data packet generation starting time
+
+$ns at 1.0 "$ftp start"
+
+# data packet generation ending time
+
+$ns at 6.0 "$ftp stop"
