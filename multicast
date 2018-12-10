@@ -1,0 +1,16 @@
+set ns [new Simulator {\bfseries{}-multicast on}]   # 멀티캐스트 라우팅 가능하게
+set group [{\bfseries{}Node allocaddr}]       # 멀티캐스트 주소 할당
+set node0 [$ns node]                # 멀티캐스트 지원 노드 생성
+set node1 [$ns node] $ns duplex-link $node0 $node1 1.5Mb 10ms DropTail
+
+set mproto DM # configure multicast protocol;
+set mrthandle [{\bfseries{}$ns mrtproto $mproto}]  # 모든 노드는 멀티캐스트 프로토콜 에이전트를 포함할것이다.
+set udp [new Agent/UDP]                  # 노드0에 소스 에이전트 생성
+$ns attach-agent $node0 $udp
+set src [new Application/Traffic/CBR] $src attach-agent $udp
+{\bfseries{}$udp set dst_addr_ $group}
+{\bfseries{}$udp set dst_port_ 0}
+
+set rcvr [new Agent/LossMonitor]       # 노드1에 수신기 에이전트 생성
+$ns attach-agent $node1 $rcvr
+$ns at 0.3 “{\bfseries{}$node1 join-group $rcvr $group}” # 시뮬레이션 시간 0.3에 그룹에 가입
