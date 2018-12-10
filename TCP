@@ -1,0 +1,25 @@
+set ns [new Simulator]
+set node_(0) [$ns node]
+set node_(1) [$ns node]
+# Defining a transport agent for sending
+set tcp [new Agent/TCP]
+# Attaching transport agent to sender node
+$ns attach-agent $node_(0) $tcp
+# Defining a transport agent for receiving
+set sink [new Agent/TCPSink]
+# Attaching transport agent to receiver node
+$ns attach-agent $node_(1) $sink
+# Connecting sending and receiving transport agents
+$ns connect $tcp $sink
+# Defining Application instance
+set ftp [new Application/FTP]
+# Attaching transport agent to application agent
+$ftp attach-agent $tcp
+# data packet generation starting time
+$ns at 1.0 "$ftp start"
+# data packet generation ending time
+$ns at 6.0 "$ftp stop"
+where,
+ns â†’ Simulator instance
+TCP â†’ Transmission Control Protocol
+FTP â†’ File Transfer Protocol
